@@ -10,3 +10,6 @@ htmlcov/
 .DS_Store
 .vercel/
 .vercel
+
+uvicorn.err.log
+uvicorn.out.log

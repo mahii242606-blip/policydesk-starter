@@ -12,6 +12,10 @@ from sqlmodel import Session, func, select
 
 from app.db import get_session
 from app.models import (
+    Claim,
+    ClaimCreate,
+    ClaimStatus,
+    ClaimStatusUpdate,
     Customer,
     CustomerCreate,
     Policy,
@@ -21,6 +25,7 @@ from app.models import (
     Quote,
     QuoteCreate,
 )
+from app.routers.claims import file_claim, remaining_cover, update_claim_status
 from app.routers.policies import issue_policy
 from app.routers.quotes import price_quote
 from app.services import pricing
@@ -49,6 +54,7 @@ def money(value: float | None) -> str:
 templates.env.filters["money"] = money
 templates.env.globals["today"] = date.today
 templates.env.globals["PolicyStatus"] = PolicyStatus
+templates.env.globals["ClaimStatus"] = ClaimStatus
 
 
 def render(request: Request, name: str, **ctx):
@@ -242,6 +248,25 @@ def policies_list(request: Request, status: str | None = None, session: Session 
     return render(request, "policies.html", policies=session.exec(stmt).all(), status=status)
 
 
+# --------------------------------------------------------------------------- #
+# Claims
+# --------------------------------------------------------------------------- #
+@router.get("/claims", response_class=HTMLResponse)
+def claims_list(request: Request, status: str | None = None, session: Session = Depends(get_session)):
+    stmt = select(Claim).order_by(Claim.created_at.desc())
+    if status:
+        stmt = stmt.where(Claim.status == status)
+    return render(
+        request,
+        "claims.html",
+        claims=session.exec(stmt).all(),
+        status=status,
+        flash=request.query_params.get("flash"),
+        error=request.query_params.get("error"),
+    )
+
+
+
 @router.get("/policies/{policy_id}", response_class=HTMLResponse)
 def policy_detail(request: Request, policy_id: int, session: Session = Depends(get_session)):
     policy = session.get(Policy, policy_id)
@@ -251,6 +276,7 @@ def policy_detail(request: Request, policy_id: int, session: Session = Depends(g
         request,
         "policy_detail.html",
         policy=policy,
+        remaining=remaining_cover(session, policy),
         flash=request.query_params.get("flash"),
         error=request.query_params.get("error"),
     )
@@ -267,6 +293,52 @@ def policy_status(policy_id: int, status: PolicyStatus = Form(...), session: Ses
     session.add(policy)
     session.commit()
     return RedirectResponse(f"/policies/{policy_id}?flash=Status+updated", status_code=303)
+
+
+@router.post("/policies/{policy_id}/claims")
+def claim_submit(
+    policy_id: int,
+    amount: float = Form(...),
+    description: str = Form(...),
+    incident_date: date = Form(...),
+    vehicle_registration: str = Form(""),
+    session: Session = Depends(get_session),
+):
+    try:
+        claim = file_claim(
+            ClaimCreate(
+                policy_id=policy_id,
+                amount=amount,
+                description=description,
+                incident_date=incident_date,
+                vehicle_registration=vehicle_registration or None,
+            ),
+            session,
+        )
+    except HTTPException as exc:
+        return RedirectResponse(f"/policies/{policy_id}?error={exc.detail}", status_code=303)
+    msg = "Claim+filed" if claim.status == ClaimStatus.FILED else "Claim+auto-rejected:+" + (claim.reason or "")
+    return RedirectResponse(f"/policies/{policy_id}?flash={msg}", status_code=303)
+
+
+@router.post("/claims/{claim_id}/status")
+def claim_status(
+    claim_id: int,
+    status: ClaimStatus = Form(...),
+    reason: str = Form(""),
+    back: str = Form(""),
+    session: Session = Depends(get_session),
+):
+    claim = session.get(Claim, claim_id)
+    if not claim:
+        raise HTTPException(404, "Claim not found")
+    back = back if back.startswith("/") else f"/policies/{claim.policy_id}"
+    try:
+        update_claim_status(claim_id, ClaimStatusUpdate(status=status, reason=reason or None), session)
+    except HTTPException as exc:
+        return RedirectResponse(f"{back}?error={exc.detail}", status_code=303)
+    return RedirectResponse(f"{back}?flash=Claim+marked+{status.value}", status_code=303)
+
 
 
 # --------------------------------------------------------------------------- #
