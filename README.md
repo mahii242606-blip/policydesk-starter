@@ -345,14 +345,5 @@ Additional workshop documentation is available in the `docs/` directory:
 - Additional insurance products.
 - Improved security and production database support.
 
-## 👨‍💻 Project Credits
-
-**TalentPath Academy**
-
-AI-Powered SDLC Workshop
-
-*Train. Learn. Grow. Succeed.*
-
----
 
 ⭐ If you find this project useful, feel free to explore the code and contribute!
