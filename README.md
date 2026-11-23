@@ -1,111 +1,358 @@
-# PolicyDesk — starter
+# PolicyDesk – Insurance Management System
 
-A small, real insurance app — **customers → products → quotes → policies** — that you extend with AI over two days:
-the **claims** feature from four worked prompts, an **admin approval** workflow from a prompt you write yourself, then the
-**quotation calculator** and **issue-policy** rules, shipped through a **CI → Vercel** pipeline.
+**PolicyDesk** is a web-based insurance management application developed using Python and FastAPI. It simplifies the insurance workflow by managing customers, insurance products, quotations, policies, and claims in one application.
 
-*TalentPath Academy · AI-Powered SDLC Workshop* — start with [docs/workshop-guide.md](docs/workshop-guide.md)
+The project was developed as part of the **TalentPath Academy – AI-Powered SDLC Workshop**.
 
-| Day | Session | Min | You do | Guide |
-|---|---|---|---|---|
-| 1 | Phase 1 · Fork & explore | 25 | fork this repo, run it, read the code with Copilot | [workshop-guide](docs/workshop-guide.md) · [git-workflow](docs/git-workflow.md) |
-| 1 | Phase 2 · Four prompts, real outputs | 30 | Claim model → claim endpoints → database tables → Claims page | [phase2-prompts](docs/phase2-prompts.md) |
-| 1 | Phase 3 · Your own prompt | 25 | admin approval: review queue + Approve / Reject with reason | [phase3-admin-approval](docs/phase3-admin-approval.md) |
-| 2 | Lab 1 · Quotation calculator | 45 | the four premium functions | [day2-lab1-quotation](docs/day2-lab1-quotation.md) |
-| 2 | Lab 2 · Issue a policy | 45 | `issue_policy` + status change | [day2-lab2-issue-policy](docs/day2-lab2-issue-policy.md) |
-| 2 | Deployment pipeline | 30 | branch → PR → merge → Vercel deploys | [day2-deployment](docs/day2-deployment.md) |
+## 🚀 Project Overview
 
-Keep [docs/handout.md](docs/handout.md) open — commands, the prompt pattern, where things are, troubleshooting.
+PolicyDesk provides an end-to-end insurance management workflow:
 
-## Start here
+**Customers → Products → Quotes → Policies → Claims**
 
-**Fork first** (top-right button) — you cannot push to this repo. Then clone **your fork**:
+The application includes customer management, insurance product management, premium calculation, policy issuance, and claims processing with an approval and rejection workflow.
 
-```bash
-git clone https://github.com/<your-username>/policydesk-starter.git
-cd policydesk-starter
-python -m venv .venv
-.venv\Scripts\activate          # macOS/Linux: source .venv/bin/activate
-pip install -r requirements.txt
-python check_setup.py           # everything [OK]?
-uvicorn app.main:app --reload
-```
+## ✨ Key Features
 
-- App: http://127.0.0.1:8000 · API docs: http://127.0.0.1:8000/docs · Health: http://127.0.0.1:8000/health
-- On first start the app creates `policydesk.db` and seeds 3 products, 2 customers and 2 policies. Delete the file to reset.
+- **Dashboard:** View insurance application information.
+- **Customer Management:** Create, view, and manage customer records.
+- **Product Management:** Manage Health, Motor, and Term Life insurance products.
+- **Quotation Management:** Generate and view insurance quotations.
+- **Premium Calculation:** Calculate premiums using age, tenure, and add-on factors.
+- **Policy Management:** Issue policies from quotations and update policy status.
+- **Claims Management:** File claims and view claim details.
+- **Claims Approval:** Review, approve, or reject claims with reasons.
+- **Database Management:** Store application information using SQLite.
+- **API Documentation:** Interactive API documentation using Swagger UI.
+- **Automated Testing:** Test application functionality using Pytest.
+- **CI/CD Pipeline:** Automated testing and deployment configuration using GitHub Actions.
 
-```bash
-pytest -m "not lab"     # 15 tests — what CI runs; must stay green
-pytest -m lab           # your targets — fail on the starter by design
-pytest                  # everything — 80 green at the end of Day 2
-```
+## 🛠️ Technologies Used
 
-## What's given, what you build
-
-| | Given | You build |
-|---|---|---|
-| Models | Customer, Product, Quote, Policy | **Claim** (Phase 2, Ex. 1) |
-| API | customers, products, quotes, policies | **`/api/claims`** — file, list, get (Ex. 2) · **`PATCH …/status`** (Phase 3) |
-| Database | SQLite, auto-created, seeded | **`app/init_db.py`** + register the router (Ex. 3) |
-| Rules | claim rules in your prompt; policy rules in the `policies.py` docstring | **premium calculator** `pricing.py` (Day 2 Lab 1) · **`issue_policy` + status** (Day 2 Lab 2) |
-| Screens | dashboard, customers, customer 360, products, quotes, quote detail, policies, policy detail | **Claims page** (Phase 2, Ex. 4) |
-| Tests | smoke + regression (given features) | lab-marked tests are your acceptance criteria |
-
-Search the code for `Phase 2`, `Phase 3`, `Day 2, Lab 1` and `Day 2, Lab 2` to find every spot.
-
-## The domain
-
-```
-Customer --+
-           +--> Quote --(issue)--> Policy --(file)--> Claim --(review)--> Approved / Rejected
-Product  --+
-```
-
-| Table | Key fields |
+| Technology | Purpose |
 |---|---|
-| **Customer** | name, email, phone, date_of_birth |
-| **Product** | code (HEALTH / MOTOR / TERM_LIFE), base_rate, min/max sum insured |
-| **Quote** | customer, product, sum_insured, tenure_years (1–3), add_ons, **premium** |
-| **Policy** | policy_number, start/end date, status (Active / Lapsed / Cancelled), vehicle_registration |
-| **Claim** *(you add)* | policy, amount, description, incident_date, status (Filed → Under Review → Approved / Rejected), reason |
+| Python | Backend programming |
+| FastAPI | Backend framework and REST APIs |
+| SQLModel | Database models and ORM |
+| SQLite | Database |
+| Jinja2 | HTML templates |
+| HTML, CSS, JavaScript | Frontend development |
+| Uvicorn | Application server |
+| Pytest | Automated testing |
+| Git & GitHub | Version control |
+| GitHub Actions | CI/CD |
+| Render & Vercel | Deployment configuration |
 
-**Premium** — `sum_insured × base_rate × age_factor × tenure_factor × add_on_factor`, min ₹1,000 (rules in `app/services/pricing.py`).
-**Claim rules** — Active policy only (Cancelled → auto-Rejected, Lapsed → 422) · incident inside the period · amount ≤ sum insured − Approved claims · Motor needs a vehicle registration.
+## 📁 Project Structure
 
-## API
+```text
+policydesk-starter/
+│
+├── api/
+│   └── index.py
+│
+├── app/
+│   ├── routers/
+│   │   ├── claims.py
+│   │   ├── customers.py
+│   │   ├── pages.py
+│   │   ├── policies.py
+│   │   ├── products.py
+│   │   └── quotes.py
+│   │
+│   ├── services/
+│   │   └── pricing.py
+│   │
+│   ├── static/
+│   ├── templates/
+│   ├── db.py
+│   ├── init_db.py
+│   ├── main.py
+│   ├── models.py
+│   └── seed.py
+│
+├── data/
+│   ├── seed_customers.csv
+│   └── seed_products.csv
+│
+├── docs/
+├── tests/
+│
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+│
+├── check_setup.py
+├── requirements.txt
+├── pyproject.toml
+├── render.yaml
+├── vercel.json
+└── README.md
+```
 
-| Method | Path | Given? |
+## ⚙️ Installation and Setup
+
+### Prerequisites
+
+- Python 3.12 or later
+- Git
+- VS Code or any Python-supported code editor
+
+### Step 1: Clone the repository
+
+```bash
+git clone https://github.com/YOUR-USERNAME/policydesk-starter.git
+```
+
+### Step 2: Open the project folder
+
+```bash
+cd policydesk-starter
+```
+
+### Step 3: Create a virtual environment
+
+```bash
+python -m venv .venv
+```
+
+### Step 4: Activate the virtual environment
+
+For Windows PowerShell:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+For macOS/Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+### Step 5: Install dependencies
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+### Step 6: Check the project setup
+
+```bash
+python check_setup.py
+```
+
+### Step 7: Run the application
+
+```bash
+python -m uvicorn app.main:app --reload
+```
+
+## 🌐 Application URLs
+
+After starting the application, open these URLs in your browser:
+
+| Service | URL |
+|---|---|
+| Main Application | http://127.0.0.1:8000 |
+| API Documentation | http://127.0.0.1:8000/docs |
+| Health Check | http://127.0.0.1:8000/health |
+
+## 🔗 API Endpoints
+
+| Method | Endpoint | Description |
 |---|---|---|
-| GET / POST | `/api/customers` | ✓ |
-| GET | `/api/products` | ✓ |
-| GET / POST | `/api/quotes` | ✓ (POST needs the premium calculator — Day 2 Lab 1) |
-| GET / POST | `/api/policies` · PATCH `/api/policies/{id}/status` | GET ✓ · POST + PATCH: Day 2 Lab 2 |
-| GET / POST | `/api/claims` · GET `/api/claims/{id}` · `?status=` `?policy_id=` | Ex. 2–3 |
-| PATCH | `/api/claims/{id}/status` | Phase 3 |
-| GET | `/health` | ✓ |
+| GET, POST | `/api/customers` | List and create customers |
+| GET | `/api/customers/{customer_id}` | Retrieve customer details |
+| GET | `/api/products` | List insurance products |
+| GET | `/api/products/{product_id}` | Retrieve product details |
+| GET, POST | `/api/quotes` | List and create quotations |
+| GET | `/api/quotes/{quote_id}` | Retrieve quotation details |
+| GET, POST | `/api/policies` | List and issue policies |
+| GET | `/api/policies/{policy_id}` | Retrieve policy details |
+| PATCH | `/api/policies/{policy_id}/status` | Update policy status |
+| GET, POST | `/api/claims` | List and file claims |
+| GET | `/api/claims/{claim_id}` | Retrieve claim details |
+| PATCH | `/api/claims/{claim_id}/status` | Update claim status |
+| GET | `/health` | Check application health |
 
-## CI/CD — GitHub Actions
+## 💰 Premium Calculation
 
-Every push to your fork runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml): **smoke (2) → regression (10)**. Tests marked `lab` are excluded, so the pipeline stays green while you work and only turns red if you break something that already worked. Enable Actions on your fork first (Settings → Actions → *Allow all actions*).
+The application calculates insurance premiums using the following formula:
 
-Deploy stages run only on the upstream repo (`main`) where the secrets live — they show as *skipped* on a fork. On Day 2 one team's PR into upstream `main` is merged and deploys to Vercel: https://policydesk-jet.vercel.app
-
-## Project layout
-
+```text
+Premium = Sum Insured × Base Rate
+          × Age Factor
+          × Tenure Factor
+          × Add-on Factor
 ```
-app/
-  main.py              FastAPI app, routers, startup seed         (Ex. 3: register claims)
-  db.py                engine + session (DATABASE_URL)
-  models.py            SQLModel tables + schemas                  (Ex. 1: add Claim)
-  seed.py              products, customers, 2 policies
-  services/pricing.py  premium rules                              (Day 2 Lab 1)
-  routers/             customers · products · quotes · policies (Day 2 Lab 2) · pages (HTML)   (Ex. 2: + claims.py · Ex. 4: /claims page)
-  templates/, static/  Jinja2 screens, TalentPath theme
-tests/                 smoke · regression · lab-marked targets (pricing, quotes, policies, pages, claims, claims_admin)
-docs/                  workshop-guide · phase2-prompts · phase3-admin-approval · day2-lab1-quotation · day2-lab2-issue-policy · day2-deployment · git-workflow · handout · setup-guide · dbeaver-demo
-data/                  seed CSVs
+
+### Age Factor
+
+| Age | Factor |
+|---|---|
+| Below 25 | 1.2 for Motor, 0.8 for other products |
+| 25–45 | 1.0 |
+| 46–60 | 1.3 |
+| Above 60 | 1.6 |
+
+### Tenure Factor
+
+| Tenure | Factor |
+|---|---|
+| 1 Year | 1.0 |
+| 2 Years | 0.95 |
+| 3 Years | 0.90 |
+
+### Available Add-ons
+
+- Health: Critical Illness – 15%
+- Motor: Zero Depreciation – 10%
+
+The minimum premium is ₹1,000.
+
+## 📋 Claims Management
+
+The claims module supports:
+
+- Filing insurance claims.
+- Listing claims.
+- Retrieving individual claim details.
+- Filtering claims by status and policy.
+- Reviewing claims.
+- Approving or rejecting claims with a reason.
+
+### Claim Status Workflow
+
+```text
+Filed
+  |
+  v
+Under Review
+  |
+  +----------+
+  |          |
+  v          v
+Approved   Rejected
 ```
+
+### Claim Validation Rules
+
+- Claims require a valid policy.
+- Cancelled policies result in automatic rejection.
+- Lapsed policies cannot be used to file claims.
+- The incident date must fall within the policy period.
+- Claim amounts must not exceed the remaining sum insured after approved claims.
+- Motor claims require vehicle registration details.
+
+## 🗄️ Database
+
+PolicyDesk uses **SQLite** with SQLModel for database operations.
+
+The application automatically creates database tables and loads sample data during startup.
+
+Main database entities:
+
+- Customer
+- Product
+- Quote
+- Policy
+- Claim
+
+The local database file is `policydesk.db`.
+
+## 🧪 Testing
+
+The project uses Pytest for automated testing.
+
+Run the following commands:
+
+```bash
+# Run smoke tests
+pytest -m smoke
+
+# Run regression tests
+pytest -m regression
+
+# Run all tests except lab tests
+pytest -m "not lab"
+
+# Run the complete test suite
+pytest
+```
+
+Test files cover:
+
+- Health checks
+- Customer and application pages
+- Quotation calculations
+- Policy management
+- Claims management
+- Claims administration
+- Regression testing
+
+## 🔄 CI/CD Pipeline
+
+The project includes a GitHub Actions workflow:
+
+`.github/workflows/ci.yml`
+
+The workflow performs:
+
+1. Smoke testing.
+2. Regression testing.
+3. Running all non-lab tests.
+4. Optional deployment to Render.
+5. Optional deployment to Vercel.
+
+Deployment requires the appropriate GitHub repository secrets.
+
+## ☁️ Deployment
+
+Deployment configuration is included for:
+
+**Render**
+- Configuration file: `render.yaml`
+- Runs the FastAPI application using Uvicorn.
+- Uses `/health` as the health-check endpoint.
+
+**Vercel**
+- Configuration file: `vercel.json`
+- Application entry point: `api/index.py`
+- Uses the Vercel Python service configuration.
+
+## 📚 Documentation
+
+Additional workshop documentation is available in the `docs/` directory:
+
+- Workshop Guide
+- Setup Guide
+- Git Workflow
+- Phase 2 Prompts
+- Phase 3 Admin Approval
+- Day 2 Quotation Calculator
+- Day 2 Issue Policy
+- Deployment Guide
+- DBeaver Demo
+- Workshop Handout
+
+## 🔮 Future Enhancements
+
+- User authentication and role-based access.
+- Advanced analytics and reporting.
+- AI-powered claim processing.
+- Enhanced admin dashboard.
+- Additional insurance products.
+- Improved security and production database support.
+
+## 👨‍💻 Project Credits
+
+**TalentPath Academy**
+
+AI-Powered SDLC Workshop
+
+*Train. Learn. Grow. Succeed.*
 
 ---
 
-TalentPath Academy · *Train. Learn. Grow. Succeed.*
+⭐ If you find this project useful, feel free to explore the code and contribute!
